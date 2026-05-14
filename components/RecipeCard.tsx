@@ -16,7 +16,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
   const categoryInfo = categoriesDb.find(c => c.name === recipe.category);
   const color = categoryInfo?.color || '#f97316';
 
-  const resolvedImageUrl = getImageUrl || recipe.image_url || `https://picsum.photos/seed/${recipe.id}/400/300`;
+  const resolvedImageUrl = getImageUrl || recipe.image_url || `https://picsum.photos/seed/${recipe.id}/800/600`;
 
   const getContrastColor = (hexColor: string) => {
     if (!hexColor) return '#ffffff';

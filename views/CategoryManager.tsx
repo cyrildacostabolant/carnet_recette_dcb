@@ -4,6 +4,17 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
 import { Id } from '../convex/_generated/dataModel';
 
+const PRESET_COLORS = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', 
+  '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+  '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+  '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+  '#f43f5e', '#dc2626', '#ea580c', '#d97706',
+  '#65a30d', '#16a34a', '#059669', '#0d9488',
+  '#0891b2', '#0284c7', '#2563eb', '#4f46e5',
+  '#7c3aed', '#9333ea', '#c026d3', '#db2777'
+];
+
 const CategoryManager: React.FC = () => {
   const categoriesDb = useQuery(api.categories.getCategories);
   
@@ -86,20 +97,31 @@ const CategoryManager: React.FC = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-          <div className="flex gap-2">
+          <div className="space-y-4">
             <input 
               type="text" placeholder="Nom (Ex: Brunch)" required
-              className="flex-grow px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-orange-500"
               value={newName} onChange={e => setNewName(e.target.value)}
               disabled={isSubmitting}
             />
-            <input 
-              type="color" className="w-12 h-10 p-1 bg-white border border-gray-200 rounded-xl cursor-pointer"
-              value={newColor} onChange={e => setNewColor(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div>
+              <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Couleur</p>
+              <div className="grid grid-cols-8 gap-3 sm:gap-4">
+                {PRESET_COLORS.map(color => (
+                  <button
+                    type="button"
+                    key={color}
+                    onClick={() => setNewColor(color)}
+                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full transition-all flex items-center justify-center ${newColor === color ? 'ring-4 ring-offset-2 ring-gray-800 scale-110 shadow-lg' : 'hover:scale-110 hover:shadow-md border border-black/10'}`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                    disabled={isSubmitting}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-4">
             <button 
               type="submit" 
               disabled={isSubmitting}
