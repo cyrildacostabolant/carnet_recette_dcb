@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recettes famille DCB</title>
+    
+    <!-- PWA & Icons - Version 3 pour forcer la mise à jour Android -->
+    <link rel="manifest" href="manifest.json?v=3">
+    <meta name="theme-color" content="#f97316">
+    <link rel="icon" type="image/svg+xml" href="icon.svg?v=3">
+    <link rel="apple-touch-icon" href="icon.svg?v=3">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Recettes DCB">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            margin: 0;
+        }
+        #root:empty::before {
+            content: 'Chargement de votre carnet de recettes...';
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        /* Styles pour l'impression */
+        @media print {
+            nav, footer, .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+            }
+            main {
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            .bg-white {
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .rounded-3xl {
+                border-radius: 0 !important;
+            }
+            img {
+                max-height: 300px !important;
+                width: auto !important;
+                margin: 0 auto !important;
+                display: block !important;
+            }
+            /* Assure que les couleurs de fond (badges, numéros) s'impriment */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.94.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+
+import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
+
+const AddRecipeView: React.FC = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<string>('');
+  const [ingredients, setIngredients] = useState<string[]>(['']);
+  const [instructions, setInstructions] = useState<string[]>(['']);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const categoriesDb = useQuery(api.categories.getCategories) || [];
+  const createRecipe = useMutation(api.recipes.createRecipe);
+  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl);
+
+  const categories = categoriesDb.map(c => ({ id: c._id, name: c.name }));
+
+  // Initialize category
+  React.useEffect(() => {
+    if (categories.length > 0 && !category) {
+      setCategory(categories[0].name);
+    }
+  }, [categories, category]);
+
+  const handleAddField = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter(prev => [...prev, '']);
+  };
+
+  const handleFieldChange = (index: number, value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter(prev => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const handleRemoveField = (index: number, setter: React.Dispatch<React.SetStateAction<string[]>>, list: string[]) => {
+    if (list.length > 1) {
+      setter(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const processFile = (file: File) => {
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+
+    const filteredIngredients = ingredients.filter(i => i.trim() !== '');
+    const filteredInstructions = instructions.filter(i => i.trim() !== '');
+
+    if (!title.trim() || filteredIngredients.length === 0 || filteredInstructions.length === 0) {
+      alert("Veuillez remplir tous les champs obligatoires (Titre, Ingrédients, Instructions).");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      let imageId = undefined;
+
+      if (imageFile) {
+        // Obtenir une URL temporaire pour uploader le fichier
+        const postUrl = await generateUploadUrl();
+
+        // Uploader le fichier directement sur Convex storage
+        const result = await fetch(postUrl, {
+          method: "POST",
+          headers: { "Content-Type": imageFile.type },
+          body: imageFile,
+        });
+
+        if (!result.ok) {
+           throw new Error("Erreur lors de l'upload de l'image");
+        }
+        
+        const { storageId } = await result.json();
+        imageId = storageId;
+      }
+
+      await createRecipe({
+        title: title.trim(),
+        category,
+        ingredients: filteredIngredients,
+        instructions: filteredInstructions,
+        imageId,
+      });
+
+      alert('Recette publiée avec succès !');
+      navigate('/');
+    } catch (error: any) {
+      console.error('Erreur complète:', error);
+      alert(error.message || "Une erreur inconnue est survenue.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 max-w-2xl mx-auto overflow-hidden animate-slideUp">
+      <div className="bg-orange-500 p-8 text-white">
+        <h1 className="text-3xl font-black">Ajouter une pépite</h1>
+        <p className="opacity-90">Partagez votre savoir-faire culinaire.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700 uppercase">Nom de la recette</label>
+            <input 
+              type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex: Tarte Tatin de Mamie"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700 uppercase">Catégorie</label>
+            <div className="relative">
+              <select 
+                value={category} onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none appearance-none"
+              >
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
+              <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-gray-700 uppercase">Photo de la recette</label>
+          <div className={`relative min-h-[12rem] rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-all ${imagePreview ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}>
+            {imagePreview ? (
+              <div className="w-full h-full relative group">
+                <img src={imagePreview} className="w-full h-64 object-cover" />
+                <button 
+                  type="button" 
+                  onClick={() => {setImageFile(null); setImagePreview(null);}} 
+                  className="absolute top-4 right-4 bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+            ) : (
+              <div className="p-8 w-full flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-images text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Galerie</span>
+                </button>
+                
+                <div className="hidden sm:block text-gray-300 font-bold">OU</div>
+
+                <button 
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-camera text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Appareil Photo</span>
+                </button>
+                
+                {/* Inputs cachés */}
+                <input 
+                  type="file" ref={fileInputRef} accept="image/*" className="hidden" 
+                  onChange={handleImageChange} 
+                />
+                <input 
+                  type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" 
+                  onChange={handleImageChange} 
+                />
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-400 uppercase text-center mt-2 tracking-widest">Formats JPG, PNG acceptés</p>
+        </div>
+
+        <div className="space-y-4">
+          <label className="font-bold text-gray-700 uppercase flex justify-between items-center">
+            Ingrédients 
+            <button type="button" onClick={() => handleAddField(setIngredients)} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase hover:bg-orange-200 transition-colors">+ Ajouter</button>
+          </label>
+          {ingredients.map((ing, idx) => (
+            <div key={idx} className="flex space-x-2 group">
+              <input 
+                type="text" value={ing} onChange={(e) => handleFieldChange(idx, e.target.value, setIngredients)} 
+                className="flex-grow px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none" 
+                placeholder={`Ex: 200g de farine`} 
+              />
+              <button type="button" onClick={() => handleRemoveField(idx, setIngredients, ingredients)} className="text-gray-300 hover:text-red-500 transition-colors">
+                <i className="fas fa-trash"></i>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          <label className="font-bold text-gray-700 uppercase flex justify-between items-center">
+            Étapes de préparation
+            <button type="button" onClick={() => handleAddField(setInstructions)} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase hover:bg-orange-200 transition-colors">+ Ajouter</button>
+          </label>
+          {instructions.map((step, idx) => (
+            <div key={idx} className="flex space-x-2">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs">{idx + 1}</div>
+              <textarea 
+                value={step} onChange={(e) => handleFieldChange(idx, e.target.value, setInstructions)} 
+                className="flex-grow px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 h-24 focus:ring-2 focus:ring-orange-500 outline-none" 
+                placeholder={`Décrivez cette étape...`} 
+              />
+              <button type="button" onClick={() => handleRemoveField(idx, setInstructions, instructions)} className="text-gray-300 hover:text-red-500 transition-colors">
+                <i className="fas fa-trash"></i>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button type="submit" disabled={loading} className={`w-full py-4 rounded-2xl font-black text-lg text-white shadow-xl shadow-orange-100 transition-all ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 hover:-translate-y-1'}`}>
+          {loading ? (
+            <span className="flex items-center justify-center">
+              <i className="fas fa-circle-notch animate-spin mr-3"></i>
+              Envoi en cours...
+            </span>
+          ) : 'Publier ma recette'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default AddRecipeView;
